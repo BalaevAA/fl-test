@@ -1,0 +1,30 @@
+
+runs/*
+
+_config.yml
+main_gate_single.py
+
+
+# documents
+*.csv
+.xls
+.xlsx
+.pdf
+.json
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+
+
+
+
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+data/tiny-imagenet-200
+tiny-imagenet-200.zip
