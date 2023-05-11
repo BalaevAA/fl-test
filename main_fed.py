@@ -3,6 +3,7 @@
 # Python version: 3.6
 import os
 import os.path
+from tqdm import tqdm
 import wget
 from zipfile import ZipFile
 import copy
@@ -10,18 +11,17 @@ import numpy as np
 from torchvision import datasets, transforms
 import torch
 import pickle
-from utils.sampling import mnist_iid, mnist_noniid, cifar_iid, cifar_noniid
-from utils.options import args_parser
+from data_utils.sampling import imagenet_iid, imagenet_noniid
+from config.options import args_parser
 from models.Update import LocalUpdate
-from models.Nets import vgg16, CNNCifar, MobileNetV2
-from models.Fed import FedAvg
+from models.Nets import MobileNetV2
+from utils.Fed import FedAvg
 from models.Test import test_img
 from utils.util import setup_seed, exp_details
-from utils.dataset_reader import TinyImageNetDataset
+from data_utils.dataset_reader import TinyImageNetDataset
 from datetime import datetime
 import torchvision.models as models
 import matplotlib.pyplot as plt
-import seaborn as sns
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -80,44 +80,50 @@ if __name__ == '__main__':
                 ]
             )
         )
-        
-        data_dist = []
-        x_client = []
-        if args.iid:
-            print('start separate dataset for iid')
-            dict_users = cifar_iid(dataset_train, args.num_users)
-            print('end')
-        else:
-            print('start separate dataset for non-iid')
-            dict_users, _ = cifar_noniid(dataset_train, args.num_users, args.alpha)
-
-            for k, v in dict_users.items():
-                data_dist.append(len(np.array(dataset_train.targets)[v]))
-                x_client.append(f'client{k}')
-    
-                writer.add_histogram(f'user_{k}/data_distribution',
-                                    np.array(dataset_train.targets)[v])
-                writer.add_histogram(f'all_user/data_distribution',
-                                    np.array(dataset_train.targets)[v], global_step=k)
-            
-            plt.title("data distribution model")
-            plt.bar(x_client, data_dist, color ='maroon', width = 0.3)
-            plt.savefig(f"imgs/data_dist_num_users{args.num_users}_iid_{args.iid}_epochs_{args.epochs}.png") 
-            
-            print('end')
-        
-        
-        
     else:
         exit('Error: unrecognized dataset')
+        
+    
+    data_dist = []
+    x_client = []
+    if args.iid:
+        print('start separate dataset for iid')
+        dict_users = imagenet_iid(dataset_train, args.num_users)
+        x_client = [f'client{i}' for i in dict_users.keys()]
+        data_dist = [len(dict_users[i]) for i in dict_users.keys()]
+        print('end')
+    else:
+        print('start separate dataset for non-iid')
+        dict_users, _ = imagenet_noniid(dataset_train, args.num_users, args.alpha)
+
+        for k, v in dict_users.items():
+            data_dist.append(len(np.array(dataset_train.targets)[v]))
+            x_client.append(f'client{k}')
+
+            writer.add_histogram(f'user_{k}/data_distribution',
+                                np.array(dataset_train.targets)[v])
+            writer.add_histogram(f'all_user/data_distribution',
+                                np.array(dataset_train.targets)[v], global_step=k)
+        
+        
+        
+        print('end')
+    
+    plt.title("data distribution")
+    plt.bar(x_client, data_dist, color ='maroon', width = 0.3)
+    plt.savefig(f"imgs/data_dist_num_users{args.num_users}_iid_{args.iid}_epochs_{args.epochs}.png") 
+        
+        
+        
+
 
 
     # build model
     if args.model == 'mobilenet' and args.dataset == 'imagenet':
         # net_glob = MobileNetV2().to(args.device)
-        net_glob = models.mobilenet_v3_large(pretrained=True, classes_num=200, input_size=224, width_multiplier=1).to(args.device)
-    else:
-        exit('Error: unrecognized model')
+        net_glob = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.IMAGENET1K_V2, classes_num=200, input_size=224, width_multiplier=1).to(args.device)
+    # else:
+    #     exit('Error: unrecognized model')
     # print(net_glob)
     net_glob.train()
 
@@ -140,7 +146,7 @@ if __name__ == '__main__':
     train_local_loss = {}
     
 
-    for iter in range(1, args.epochs + 1):
+    for iter in tqdm(range(1, args.epochs + 1)):
         print(f'\nGlobal epoch {iter}\n')
         w_locals, loss_locals = [], []
         m = max(int(args.frac * args.num_users), 1)
@@ -176,8 +182,6 @@ if __name__ == '__main__':
         
         writer.add_scalar('test_loss', test_loss, iter)
         writer.add_scalar('test_acc', test_acc, iter)
-        with open(f'save/model_{iter}.pkl', 'wb') as fin:
-            pickle.dump(net_glob, fin)
         print('==============================')
         save_info = {
             "model": net_glob.state_dict(),
@@ -193,10 +197,8 @@ if __name__ == '__main__':
             torch.save(save_info, save_path)
         
         
-    with open('save/model_lust.pkl', 'wb') as fin:
-        pickle.dump(net_glob, fin)
     
-    # plot loss curve
+    
 
     
     plt.title("global model")
@@ -232,3 +234,7 @@ if __name__ == '__main__':
     print("Training accuracy: {:.2f}".format(acc_train))
     print("Testing accuracy: {:.2f}".format(acc_test))
     writer.close()
+
+
+    with open('save/model_lust.pkl', 'wb') as fin:
+        pickle.dump(net_glob, fin)
