@@ -23,9 +23,11 @@ def add_scalar(writer, user_num, test_result, epoch):
 
 def exp_details(args):
     print('\n---------------Experimental details:-------------\n')
+    print(f'\tepochs          : {args.epochs}\n')
     print(f'\tModel           : {args.model}')
-    print(f'\ttLearning       : {args.lr}')
-    print(f'\tGlobal Rounds   : {args.epochs}\n')
+    print(f'\tLearning rate   : {args.lr}')
+    print(f'\tGlobal Rounds   : {args.epochs}')
+    print(f"\tDevice          : {'gpu' if torch.cuda.is_available() and args.gpu != -1 else 'cpu'}")
 
     print('\n----------------Federated parameters:------------\n')
     if args.iid:

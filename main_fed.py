@@ -14,13 +14,14 @@ import pickle
 from data_utils.sampling import imagenet_iid, imagenet_noniid
 from config.options import args_parser
 from models.Update import LocalUpdate
-from models.Nets import MobileNetV2
+from models.Nets import MobileNetV2, mobilenetv3_small
 from utils.Fed import FedAvg
 from models.Test import test_img
 from utils.util import setup_seed, exp_details
 from data_utils.dataset_reader import TinyImageNetDataset
 from datetime import datetime
 import torchvision.models as models
+import torch.nn as nn
 import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     plt.title("data distribution")
     plt.bar(x_client, data_dist, color ='maroon', width = 0.3)
     plt.savefig(f"imgs/data_dist_num_users{args.num_users}_iid_{args.iid}_epochs_{args.epochs}.png") 
-        
+    plt.close()  
         
         
 
@@ -120,8 +121,12 @@ if __name__ == '__main__':
 
     # build model
     if args.model == 'mobilenet' and args.dataset == 'imagenet':
-        # net_glob = MobileNetV2().to(args.device)
-        net_glob = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.IMAGENET1K_V2, classes_num=200, input_size=224, width_multiplier=1).to(args.device)
+        # net_glob = mobilenetv3_small().to(args.device)
+        # net_glob = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V2)
+        net_glob = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.IMAGENET1K_V2).to(args.device)
+        # num_fitrs = net_glob.classifier[-1].in_features
+        # net_glob.classifier[-1] = nn.Linear(num_fitrs, 200)
+        # net_glob.to(args.device) 
     # else:
     #     exit('Error: unrecognized model')
     # print(net_glob)
@@ -168,6 +173,8 @@ if __name__ == '__main__':
 
         # copy weight to net_glob
         net_glob.load_state_dict(w_glob)
+        with open(f'save/model_lust{iter}.pkl', 'wb') as fin:
+            pickle.dump(net_glob, fin)
 
         # print loss
         loss_avg = sum(loss_locals) / len(loss_locals)
@@ -202,8 +209,8 @@ if __name__ == '__main__':
 
     
     plt.title("global model")
-    plt.plot(range(1, len(loss_train)+1, 1), loss_train, label='train loss')
-    plt.plot(range(1, len(loss_train)+1, 1), test_loss_ar, label='test loss')
+    plt.plot(range(len(loss_train)), loss_train, label='train loss')
+    plt.plot(range(len(loss_train)), test_loss_ar, label='test loss')
     plt.xlabel('epoch')
     plt.ylabel('loss')
     plt.legend(fontsize=12)
@@ -214,7 +221,7 @@ if __name__ == '__main__':
     k = 0
     print(train_local_loss)
     for i in train_local_loss.keys():
-        plt.plot(range(1, len(train_local_loss[i]) + 1, 1), train_local_loss[i], label=f'client{i}')
+        plt.plot(range(len(train_local_loss[i])), train_local_loss[i], label=f'client{i}')
     plt.xlabel('epoch')
     plt.ylabel('loss')
     plt.legend()
@@ -226,6 +233,14 @@ if __name__ == '__main__':
     plt.plot(range(len(loss_train)), loss_train)
     plt.ylabel('train_loss')
     plt.savefig('imgs/fed_numUsers_{}_{}_{}_{}_C{}_iid{}.png'.format(args.num_users, args.dataset, args.model, args.epochs, args.frac, args.iid))
+    plt.close()
+    
+    plt.title('Test accuracy')
+    plt.plot(range(len(test_acc_graph)),test_acc_graph)
+    plt.xlabel('epoch')
+    plt.ylabel('accuracy')
+    plt.savefig("img/Test accuracy{}_{}_{}_C{}_iid{}.png".format(args.dataset, args.model, args.epochs, args.frac, args.iid))
+    plt.close()
 
     # testing
     net_glob.eval()
