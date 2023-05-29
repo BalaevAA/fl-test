@@ -14,7 +14,7 @@ import pickle
 from data_utils.sampling import imagenet_iid, imagenet_noniid
 from config.options import args_parser
 from models.Update import LocalUpdate
-from models.Nets import MobileNetV2, mobilenetv3_small
+from models.Nets import MobileNetV2,vgg16,MobileNetV3
 from utils.Fed import FedAvg
 from models.Test import test_img
 from utils.util import setup_seed, exp_details
@@ -81,8 +81,31 @@ if __name__ == '__main__':
                 ]
             )
         )
-    else:
-        exit('Error: unrecognized dataset')
+    elif args.dataset == 'cifar':
+        dataset_train = datasets.CIFAR10(
+                                            'data/cifar', 
+                                            train=True, 
+                                            download=True, 
+                                            transform=transforms.Compose(
+                                                [
+                                                    transforms.RandomCrop(32, padding=4),
+                                                    transforms.RandomHorizontalFlip(),
+                                                    transforms.ToTensor(), 
+                                                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                                                ]
+                                            )
+                                        )
+        dataset_test = datasets.CIFAR10(
+                                            'data/cifar', 
+                                            train=False, 
+                                            download=True, 
+                                            transform=transforms.Compose(
+                                                [
+                                                    transforms.ToTensor(), 
+                                                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                                                ]
+                                            )
+                                        )
         
     
     data_dist = []
@@ -96,18 +119,9 @@ if __name__ == '__main__':
     else:
         print('start separate dataset for non-iid')
         dict_users, _ = imagenet_noniid(dataset_train, args.num_users, args.alpha)
-
         for k, v in dict_users.items():
             data_dist.append(len(np.array(dataset_train.targets)[v]))
             x_client.append(f'client{k}')
-
-            writer.add_histogram(f'user_{k}/data_distribution',
-                                np.array(dataset_train.targets)[v])
-            writer.add_histogram(f'all_user/data_distribution',
-                                np.array(dataset_train.targets)[v], global_step=k)
-        
-        
-        
         print('end')
     
     plt.title("data distribution")
@@ -117,18 +131,20 @@ if __name__ == '__main__':
         
         
 
+    if args.dataset == 'imagenet':
+        if args.model == 'mobilenetV3-small-pre':
+            net_glob = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1).to(args.device)
+        elif args.model == 'mobilenetV3-large-pre':
+            net_glob = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.IMAGENET1K_V2).to(args.device)
+        elif args.model == 'mobilenetV3-small':
+            net_glob = MobileNetV3(mode='small', classes_num=args.num_classes, input_size=56, 
+                    width_multiplier=1, dropout=0.2, 
+                    BN_momentum=0.1, zero_gamma=False)
+    elif args.dataset == 'cifar':
+        if args.model == 'vgg16':
+            net_glob = vgg16().to(args.device)
 
 
-    # build model
-    if args.model == 'mobilenet' and args.dataset == 'imagenet':
-        # net_glob = mobilenetv3_small().to(args.device)
-        # net_glob = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V2)
-        net_glob = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.IMAGENET1K_V2).to(args.device)
-        # num_fitrs = net_glob.classifier[-1].in_features
-        # net_glob.classifier[-1] = nn.Linear(num_fitrs, 200)
-        # net_glob.to(args.device) 
-    # else:
-    #     exit('Error: unrecognized model')
     # print(net_glob)
     net_glob.train()
 

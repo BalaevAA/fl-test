@@ -22,19 +22,20 @@ def add_scalar(writer, user_num, test_result, epoch):
 
 
 def exp_details(args):
-    print('\n---------------Experimental details:-------------\n')
-    print(f'\tepochs          : {args.epochs}\n')
-    print(f'\tModel           : {args.model}')
-    print(f'\tLearning rate   : {args.lr}')
-    print(f'\tGlobal Rounds   : {args.epochs}')
-    print(f"\tDevice          : {'gpu' if torch.cuda.is_available() and args.gpu != -1 else 'cpu'}")
-
-    print('\n----------------Federated parameters:------------\n')
+    print('*******************************************************************')
+    print('***                   Experimental details:                     ***')
+    print('*******************************************************************')
+    print(f'***\t\tepochs\t\t\t:\t{args.epochs}\t\t***')
+    print(f'***\t\tModel\t\t\t:\t{args.model}\t***')
+    print(f'***\t\tLearning rate\t\t:\t{args.lr}\t\t***')
+    print(f'***\t\tGlobal Rounds\t\t:\t{args.epochs}\t\t***')
+    print(f"***\t\tDevice\t\t\t:\t{'gpu' if torch.cuda.is_available() and args.gpu != -1 else 'cpu'}\t\t***")
     if args.iid:
-        print('\tIID')
+        print('***\t\tData split\t\t:\tIID\t\t***')
     else:
-        print('\tNon-IID')
-    print(f'\tFraction of users  : {args.frac}')
-    print(f'\tLocal Batch size   : {args.local_bs}')
-    print(f'\tLocal Epochs       : {args.local_ep}\n')
+        print('***\t\tData split\t\t:\tNon-IID\t\t***')
+    print(f'***\t\tFraction of users\t:\t{args.frac}\t\t***')
+    print(f'***\t\tLocal Batch size\t:\t{args.local_bs}\t\t***')
+    print(f'***\t\tLocal Epochs\t\t:\t{args.local_ep}\t\t***')
+    print('*******************************************************************')
     return

@@ -46,10 +46,11 @@ class LocalUpdate(object):
         # train and update
         print('\nstart local train\n')
 
-        optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=0.9, weight_decay=5e-4)
+        # optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=0.9, weight_decay=5e-4)
         # optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=0.5)
-        
         # optimizer = torch.optim.Adam(net.parameters(), lr=self.args.lr, weight_decay=1e-4)
+        optimizer = torch.optim.RMSprop(net.parameters(), lr=self.args.lr, momentum=0.9, weight_decay=6e-5)
+        
         epoch_loss = []
         for iter in tqdm(range(self.args.local_ep)):
             batch_loss = []
