@@ -1,30 +1,15 @@
-
 runs/*
-
-_config.yml
-main_gate_single.py
-
-
-# documents
 *.csv
 .xls
 .xlsx
 .pdf
 .json
 .pkl
-
-# Byte-compiled / optimized / DLL files
 __pycache__/
-
-
-
-
-
-
-# virtualenv
 .venv
 venv/
 ENV/
-
+save/*
 data/tiny-imagenet-200
+data/cifar
 tiny-imagenet-200.zip
