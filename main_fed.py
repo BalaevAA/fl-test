@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Python version: 3.6
 import os
 import os.path
 from tqdm import tqdm
@@ -11,10 +8,10 @@ import numpy as np
 from torchvision import datasets, transforms
 import torch
 import pickle
-from data_utils.sampling import imagenet_iid, imagenet_noniid
+from data_utils.sampling import imagenet_iid, imagenet_noniid, cifar_iid, cifar_noniid
 from config.options import args_parser
 from models.Update import LocalUpdate
-from models.Nets import MobileNetV2,vgg16,MobileNetV3
+from models.Nets import MobileNetV2, vgg16,MobileNetV3
 from utils.Fed import FedAvg
 from models.Test import test_img
 from utils.util import setup_seed, exp_details
@@ -23,7 +20,6 @@ from datetime import datetime
 import torchvision.models as models
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from torch.utils.tensorboard import SummaryWriter
 
 
 if __name__ == '__main__':
@@ -33,16 +29,8 @@ if __name__ == '__main__':
     setup_seed(args.seed)
     exp_details(args)
 
-    # log
-    current_time = datetime.now().strftime('%b.%d_%H.%M.%S')
-    TAG = 'exp/fed/{}_{}_{}_C{}_iid{}_{}_user{}_{}'.format(args.dataset, args.model, args.epochs, args.frac, args.iid,
-                                                           args.alpha, args.num_users, current_time)
-    # TAG = f'alpha_{alpha}/data_distribution'
-    logdir = f'runs/{TAG}' if not args.debug else f'runs2/{TAG}'
-    writer = SummaryWriter(logdir)
-
-    # load dataset and split users
-    # test_loader = DataLoader(dataset_test, batch_size=1000, shuffle=False)
+    data_dist = []
+    x_client = []
     if args.dataset == 'imagenet':
         TINY_IMAGENET_ROOT = 'data/tiny-imagenet-200/'
         if os.path.exists('tiny-imagenet-200.zip') == False:
@@ -81,35 +69,60 @@ if __name__ == '__main__':
                 ]
             )
         )
+        if args.iid:
+            print('start separate dataset for iid')
+            dict_users = imagenet_iid(dataset_train, args.num_users)
+            x_client = [f'client{i}' for i in dict_users.keys()]
+            data_dist = [len(dict_users[i]) for i in dict_users.keys()]
+            print('end')
+        else:
+            print('start separate dataset for non-iid')
+            dict_users, _ = imagenet_noniid(dataset_train, args.num_users, args.alpha)
+            for k, v in dict_users.items():
+                data_dist.append(len(np.array(dataset_train.targets)[v]))
+                x_client.append(f'client{k}')
+            print('end')
+    
     elif args.dataset == 'cifar':
         dataset_train = datasets.CIFAR10(
-                                            'data/cifar', 
-                                            train=True, 
-                                            download=True, 
-                                            transform=transforms.Compose(
-                                                [
-                                                    transforms.RandomCrop(32, padding=4),
-                                                    transforms.RandomHorizontalFlip(),
-                                                    transforms.ToTensor(), 
-                                                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-                                                ]
-                                            )
-                                        )
+            'data/cifar', 
+            train=True, 
+            download=True, 
+            transform=transforms.Compose(
+                [
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(), 
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                ]
+            )
+        )
         dataset_test = datasets.CIFAR10(
-                                            'data/cifar', 
-                                            train=False, 
-                                            download=True, 
-                                            transform=transforms.Compose(
-                                                [
-                                                    transforms.ToTensor(), 
-                                                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-                                                ]
-                                            )
-                                        )
-        
+            'data/cifar', 
+            train=False, 
+            download=True, 
+            transform=transforms.Compose(
+                [
+                    transforms.ToTensor(), 
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                ]
+            )
+        )
+        if args.iid:
+            print('start separate dataset for iid')
+            dict_users = cifar_iid(dataset_train, args.num_users)
+            x_client = [f'client{i}' for i in dict_users.keys()]
+            data_dist = [len(dict_users[i]) for i in dict_users.keys()]
+            print('end')
+        else:
+            print('start separate dataset for non-iid')
+            dict_users, _ = cifar_noniid(dataset_train, args.num_users, args.alpha)
+            for k, v in dict_users.items():
+                data_dist.append(len(np.array(dataset_train.targets)[v]))
+                x_client.append(f'client{k}')
+            print('end')
     
-    data_dist = []
-    x_client = []
+
     if args.iid:
         print('start separate dataset for iid')
         dict_users = imagenet_iid(dataset_train, args.num_users)
@@ -124,13 +137,13 @@ if __name__ == '__main__':
             x_client.append(f'client{k}')
         print('end')
     
+    
     plt.title("data distribution")
     plt.bar(x_client, data_dist, color ='maroon', width = 0.3)
     plt.savefig(f"imgs/data_dist_num_users{args.num_users}_iid_{args.iid}_epochs_{args.epochs}.png") 
     plt.close()  
         
         
-
     if args.dataset == 'imagenet':
         if args.model == 'mobilenetV3-small-pre':
             net_glob = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.IMAGENET1K_V1).to(args.device)
@@ -197,32 +210,17 @@ if __name__ == '__main__':
         print('==============================')
         print('Round {:3d}, Train loss {:.3f}'.format(iter, loss_avg))
         loss_train.append(loss_avg)
-        writer.add_scalar('train_loss', loss_avg, iter)
         test_acc, test_loss, tmp = test_img(net_glob, dataset_test, args)
         test_loss_peer_batch.append(tmp)
         test_loss_ar.append(test_loss)
         test_acc_graph.append(test_acc)
-        
-        writer.add_scalar('test_loss', test_loss, iter)
-        writer.add_scalar('test_acc', test_acc, iter)
         print('==============================')
         save_info = {
             "model": net_glob.state_dict(),
             "epoch": iter
         }
-        # save model weights
-        if (iter+1) % 500 == 0:
-            save_path = f'./save2/{TAG}_{iter+1}es' if args.debug else f'./save/{TAG}_{iter+1}es'
-            torch.save(save_info, save_path)
-        if iter > 100 and test_acc > test_best_acc:
-            test_best_acc = test_acc
-            save_path = f'./save2/{TAG}_bst' if args.debug else f'./save/{TAG}_bst'
-            torch.save(save_info, save_path)
         
         
-    
-    
-
     
     plt.title("global model")
     plt.plot(range(len(loss_train)), loss_train, label='train loss')
@@ -264,7 +262,6 @@ if __name__ == '__main__':
     acc_test, loss_test = test_img(net_glob, dataset_test, args)
     print("Training accuracy: {:.2f}".format(acc_train))
     print("Testing accuracy: {:.2f}".format(acc_test))
-    writer.close()
 
 
     with open('save/model_lust.pkl', 'wb') as fin:
