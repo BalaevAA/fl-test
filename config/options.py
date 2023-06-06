@@ -15,11 +15,11 @@ def args_parser():
     
     parser.add_argument('--local_ep', type=int, default=5, help="the number of local epochs: E")
     
-    parser.add_argument('--local_bs', type=int, default=128, help="local batch size: B")
+    parser.add_argument('--local_bs', type=int, default=32, help="local batch size: B")
     
-    parser.add_argument('--test_bs', type=int, default=128, help="test batch size")
+    parser.add_argument('--test_bs', type=int, default=32, help="test batch size")
     
-    parser.add_argument('--lr', type=float, default=0.15, help="learning rate")
+    parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
     
     parser.add_argument('--momentum', type=float, default=0.9, help="SGD momentum (default: 0.5)")
     
@@ -29,7 +29,7 @@ def args_parser():
     
     parser.add_argument('--data_method', action='store_true', help="order of generated and loading data for the client")
     
-    parser.add_argument('--data_dist', type='str', default='iid', help="iid, noniid1, noniid2")
+    parser.add_argument('--data_dist', type=str, default='iid', help="iid, noniid1, noniid2")
     
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer (sgd, adam, rmsprop)")
     

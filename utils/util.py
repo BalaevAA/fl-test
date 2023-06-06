@@ -22,22 +22,19 @@ def add_scalar(writer, user_num, test_result, epoch):
 
 
 def exp_details(args):
-    print('*******************************************************************')
-    print('***                   Experimental details:                     ***')
-    print('*******************************************************************')
+    print('***************************************************************************')
+    print('***                   Experimental details:                             ***')
+    print('***************************************************************************')
     print(f'***\t\tdataset\t\t\t:\t{args.dataset}\t\t\t***')
     print(f'***\t\tepochs\t\t\t:\t{args.epochs}\t\t\t***')
-    print(f'***\t\tModel\t\t\t:\t{args.model}\t\t***')
+    print(f'***\t\tModel\t\t\t:\t{args.model}\t\t\t***')
     print(f'***\t\tLearning rate\t\t:\t{args.lr}\t\t\t***')
     print(f'***\t\tGlobal Rounds\t\t:\t{args.epochs}\t\t\t***')
-    print(f'***\t\tOptimizer\t\t\t:\t{args.optimizer}\t\t\t***')
+    print(f'***\t\tOptimizer\t\t:\t{args.optimizer}\t\t\t***')
     print(f"***\t\tDevice\t\t\t:\t{'gpu' if torch.cuda.is_available() and args.gpu != -1 else 'cpu'}\t\t\t***")
-    if args.iid:
-        print('***\t\tData split\t\t:\tIID\t\t\t***')
-    else:
-        print('***\t\tData split\t\t:\tNon-IID\t\t\t***')
+    print(f'***\t\tData split\t\t:\t{args.data_dist}\t\t\t***')
     print(f'***\t\tFraction of users\t:\t{args.frac}\t\t\t***')
     print(f'***\t\tLocal Batch size\t:\t{args.local_bs}\t\t\t***')
     print(f'***\t\tLocal Epochs\t\t:\t{args.local_ep}\t\t\t***')
-    print('*******************************************************************')
+    print('***************************************************************************')
     return

@@ -156,7 +156,7 @@ if __name__ == '__main__':
     
     plt.title("data distribution")
     plt.bar(x_client, data_dist, color ='maroon', width = 0.3)
-    plt.savefig(f"imgs/data_dist_num_users{args.num_users}_iid_{args.iid}_epochs_{args.epochs}.png") 
+    plt.savefig(f"imgs/data_dist_num_users{args.num_users}_iid_{args.data_dist}_epochs_{args.epochs}.png") 
     plt.close()  
         
         
@@ -234,8 +234,8 @@ if __name__ == '__main__':
 
         # copy weight to net_glob
         net_glob.load_state_dict(w_glob)
-        with open(f'save/model_lust{iter}.pkl', 'wb') as fin:
-            pickle.dump(net_glob, fin)
+        # with open(f'save/model_lust{iter}.pkl', 'wb') as fin:
+        #     pickle.dump(net_glob, fin)
 
         # print loss
         loss_avg = sum(loss_locals) / len(loss_locals)
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     plt.xlabel('epoch')
     plt.ylabel('loss')
     plt.legend(fontsize=12)
-    plt.savefig("imgs/global model dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.iid, args.optimizer))
+    plt.savefig("imgs/global model dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.data_dist, args.optimizer))
     plt.close()
     
     
@@ -267,21 +267,21 @@ if __name__ == '__main__':
     plt.xlabel('epoch')
     plt.ylabel('loss')
     plt.legend()
-    plt.savefig("imgs/Train loss by each client. dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.iid, args.optimizer))
+    plt.savefig("imgs/Train loss by each client. dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.data_dist, args.optimizer))
     plt.close()
     
     
     plt.figure()
     plt.plot(range(len(loss_train)), loss_train)
     plt.ylabel('train_loss')
-    plt.savefig("imgs/fed_dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.iid, args.optimizer))
+    plt.savefig("imgs/fed_dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.data_dist, args.optimizer))
     plt.close()
     
     plt.title('Test accuracy')
     plt.plot(range(len(test_acc_graph)),test_acc_graph)
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
-    plt.savefig("imgs/Test accuracy. dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.iid, args.optimizer))
+    plt.savefig("imgs/Test accuracy. dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.data_dist, args.optimizer))
     plt.close()
 
     # testing
