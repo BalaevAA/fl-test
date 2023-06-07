@@ -8,7 +8,7 @@ import numpy as np
 from torchvision import datasets, transforms
 import torch
 import pickle
-from data_utils.sampling import imagenet_iid, imagenet_noniid, cifar_iid, cifar_noniid, noniid_cluster_based
+from data_utils.sampling import imagenet_iid, imagenet_noniid, cifar_iid, cifar_noniid, noniid_cluster_based, iid_cluster_based
 from config.options import args_parser
 from models.Local_train import LocalUpdateWithLocalsData, LocalUpdateWithDataGen
 from models.Nets import MobileNetV2, vgg16, vgg19, MobileNetV3
@@ -30,6 +30,7 @@ if __name__ == '__main__':
 
     data_dist = []
     x_client = []
+    apa = {}
     if args.dataset == 'imagenet':
         TINY_IMAGENET_ROOT = 'data/tiny-imagenet-200/'
         if os.path.exists('tiny-imagenet-200.zip') == False:
@@ -69,9 +70,15 @@ if __name__ == '__main__':
             )
         )
         if args.data_method:
-            if args.data_dist == 'iid':
+            if args.data_dist == 'iid1':
                 print('start separate dataset for iid')
                 dict_users = imagenet_iid(dataset_train, args.num_users)
+                x_client = [f'client{i}' for i in dict_users.keys()]
+                data_dist = [len(dict_users[i]) for i in dict_users.keys()]
+                print('end')
+            elif args.data_dist == 'iid2':
+                print('start separate dataset for iid')
+                dict_users = iid_cluster_based(dataset_train, args.num_users)
                 x_client = [f'client{i}' for i in dict_users.keys()]
                 data_dist = [len(dict_users[i]) for i in dict_users.keys()]
                 print('end')
@@ -117,9 +124,15 @@ if __name__ == '__main__':
             )
         )
         if args.data_method:
-            if args.data_dist == 'iid':
+            if args.data_dist == 'iid1':
                 print('start separate dataset for iid')
                 dict_users = cifar_iid(dataset_train, args.num_users)
+                x_client = [f'client{i}' for i in dict_users.keys()]
+                data_dist = [len(dict_users[i]) for i in dict_users.keys()]
+                print('end')
+            elif args.data_dist == 'iid2':
+                print('start separate dataset for iid')
+                dict_users, apa = iid_cluster_based(dataset_train, args.num_users)
                 x_client = [f'client{i}' for i in dict_users.keys()]
                 data_dist = [len(dict_users[i]) for i in dict_users.keys()]
                 print('end')
@@ -132,7 +145,7 @@ if __name__ == '__main__':
                 print('end')
             elif args.data_dist =='noniid2':
                 print('start separate dataset for non-iid using cluster-based partition')
-                dict_users, _ = noniid_cluster_based(dataset_train, args.num_users, args.alpha)
+                dict_users, _, apa = noniid_cluster_based(dataset_train, args.num_users, args.alpha)
                 for k, v in dict_users.items():
                     data_dist.append(len(np.array(dataset_train.targets)[v]))
                     x_client.append(f'client{k}')
