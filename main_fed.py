@@ -9,6 +9,8 @@ from torchvision import datasets, transforms
 import torch
 import pickle
 from data_utils.sampling import imagenet_iid, imagenet_noniid, cifar_iid, cifar_noniid, noniid_cluster_based, iid_cluster_based
+from data_utils.make_boxplot import create_boxplot
+from data_utils.make_hist import create_hist_curves
 from config.options import args_parser
 from models.Local_train import LocalUpdateWithLocalsData, LocalUpdateWithDataGen
 from models.Nets import MobileNetV2, vgg16, vgg19, MobileNetV3
@@ -284,6 +286,10 @@ if __name__ == '__main__':
     plt.close()
     
     
+    create_boxplot(args, train_local_loss)
+    create_hist_curves(args, train_local_loss)
+    
+    
     plt.figure()
     plt.plot(range(len(loss_train)), loss_train)
     plt.ylabel('train_loss')
@@ -296,6 +302,7 @@ if __name__ == '__main__':
     plt.ylabel('accuracy')
     plt.savefig("imgs/Test accuracy. dataset_{}_model_{}_numUser_{}_epoch_{}_C_{}_iid_{}_optimizer_{}.png".format(args.dataset, args.model, args.num_users, args.epochs, args.frac, args.data_dist, args.optimizer))
     plt.close()
+    
 
     # testing
     a, b = 0, 0

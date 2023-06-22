@@ -108,10 +108,16 @@ def cifar_noniid(dataset, no_participants, alpha=0.9):
     return per_participant_list, class_weight
 
 
-def iid_cluster_based(dataset, no_participants, alpha):
+##################################
+##                              ##
+##   cluster-based partitions   ##     
+##                              ##
+##################################
+
+
+def iid_cluster_based(dataset, no_participants):
     np.random.seed(666)
     random.seed(666)
-
 
     cifar_classes = {}
     for ind, x in enumerate(dataset):
@@ -121,60 +127,35 @@ def iid_cluster_based(dataset, no_participants, alpha):
         else:
             cifar_classes[label] = [ind]
 
-    per_participant_list = defaultdict(list)
-    per_participant_dict = {}  
-    class_counts_dict = {}  
+    per_participant_list = {}
+    class_counts_dict = {}
     no_classes = len(cifar_classes.keys())
-    class_size = len(cifar_classes[0])
-    datasize = {}
-
 
     for n in range(no_classes):
         random.shuffle(cifar_classes[n])
 
-
     cluster_data = np.concatenate(list(cifar_classes.values())).reshape(-1, 1)
     kmeans = KMeans(n_clusters=no_participants, random_state=666)
     cluster_labels = kmeans.fit_predict(cluster_data)
-
-
-    class_counts = np.array([len(cifar_classes[i]) for i in range(no_classes)])
-    min_class_count = np.min(class_counts)  
-    sampled_probabilities = alpha * min_class_count / class_counts
-
 
     for user in range(no_participants):
         participant_indices = np.where(cluster_labels == user)[0]
         participant_samples = cluster_data[participant_indices].flatten()
         random.shuffle(participant_samples)
 
+        per_participant_list[user] = []
+        class_counts_dict[user] = {}
+
         for class_idx in range(no_classes):
             class_samples = cifar_classes[class_idx]
-            no_imgs = int(round(sampled_probabilities[class_idx] * len(participant_samples)))
+            no_imgs = min(len(class_samples), len(participant_samples) // no_classes)
 
-            sampled_list = class_samples[:min(len(class_samples), no_imgs)]
+            sampled_list = class_samples[:no_imgs]
             per_participant_list[user].extend(sampled_list)
-            cifar_classes[class_idx] = class_samples[min(len(class_samples), no_imgs):]
+            cifar_classes[class_idx] = class_samples[no_imgs:]
 
-            datasize[user, class_idx] = no_imgs
+            class_counts_dict[user][class_idx] = no_imgs
 
-            if class_idx in per_participant_dict:
-                per_participant_dict[class_idx].extend(sampled_list)
-            else:
-                per_participant_dict[class_idx] = sampled_list
-
-        class_counts_dict[user] = {class_idx: len(per_participant_dict[class_idx]) for class_idx in per_participant_dict}
-
-    train_img_size = np.zeros(no_participants)
-    for i in range(no_participants):
-        train_img_size[i] = sum([datasize[i, j] for j in range(no_classes)])
-
-    class_weight = np.zeros((no_participants, no_classes))
-    for i in range(no_participants):
-        for j in range(no_classes):
-            class_weight[i, j] = float(datasize[i, j]) / float(train_img_size[i])
-
-    # return per_participant_list, per_participant_dict, class_weight, class_counts_dict
     return per_participant_list, class_counts_dict
 
 
